@@ -9,5 +9,5 @@ How to use this.
 
 Notification:
 1. More players in server, the more lag will occur.
-1-1. Same way, more SCP-956 exists, the more lag will occur.
-2. If you want to use custom model for SCP-956, please make it facing z+ way when rotate it 90˚ y. + center pos should be (0, 0.5, 0) up from the bottom point.
+2. Same way, more SCP-956 exists, the more lag will occur.
+3. If you want to use custom model for SCP-956, please make it facing z+ way when rotate it 90˚ y. + center pos should be (0, 0.5, 0) up from the bottom point.
