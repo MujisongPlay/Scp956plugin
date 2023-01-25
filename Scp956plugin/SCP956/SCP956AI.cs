@@ -1,4 +1,4 @@
-﻿using CustomPlayerEffects;
+using CustomPlayerEffects;
 using Exiled.API.Features;
 using Interactables;
 using Interactables.Interobjects;
@@ -22,7 +22,7 @@ namespace SCP956Plugin.SCP956
         void Start()
         {
             this.gameObject.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
-            this.gameObject.transform.position += new Vector3(0f, 0.5f, 0f);
+            this.gameObject.transform.position += new Vector3(0f, config.SchematicOffsetHeight, 0f);
             _spawnPos = this.gameObject.transform.position;
             rotateTime = config.TimeToRotateTowardTarget;
             moveTime = config.TimeToApproachTarget;
@@ -341,7 +341,7 @@ namespace SCP956Plugin.SCP956
             }
             doo = list.RandomItem();
             Transform transform = doo.transform;
-            pos = transform.position + 0.75f * (UnityEngine.Random.Range(0, 1) * 2f - 1f) * transform.forward + Vector3.up * 0.5f;
+            pos = transform.position + 0.75f * (UnityEngine.Random.Range(0, 1) * 2f - 1f) * transform.forward + Vector3.up * config.SchematicOffsetHeight;
             if (config.LogsItslocation)
             {
                 ServerConsole.AddLog("SCP-956 Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
