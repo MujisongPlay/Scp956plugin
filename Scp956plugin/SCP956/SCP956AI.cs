@@ -260,7 +260,7 @@ namespace SCP956Plugin.SCP956
 
         private bool CheckVisibility(Vector3 checkPos, Vector3 humanPos)
         {
-            return !Physics.CheckCapsule(humanPos, checkPos, 0.15f, FpcStateProcessor.Mask);
+            return !Physics.Linecast(humanPos, checkPos, out RaycastHit hit, FpcStateProcessor.Mask) || hit.collider.transform.root.gameObject == this.gameObject;
         }
 
         void UpdateVisual()
