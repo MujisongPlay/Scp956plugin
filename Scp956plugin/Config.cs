@@ -1,10 +1,11 @@
-﻿using Exiled.API.Enums;
+using Exiled.API.Enums;
 using Exiled.API.Interfaces;
 using InventorySystem.Items.Usables.Scp330;
 using PlayerRoles;
 using System.Collections.Generic;
 using System.ComponentModel;
 using MapGeneration;
+using UnityEngine;
 
 namespace SCP956Plugin
 {
@@ -12,6 +13,12 @@ namespace SCP956Plugin
     {
         public bool IsEnabled { get; set; } = true;
         public bool Debug { get; set; } = false;
+
+        //basic setting
+        [Description("The name of schematic to use as model of SCP-956.")]
+        public string SchematicName { get; set; } = "scp956";
+        [Description("If you change the model, you should set value distance schematic center to bottom point.")]
+        public float SchematicOffsetHeight { get; set; } = 0.5f;
 
         //Spawn
         public FacilityZone[] SpawnableZone { get; set; } = new FacilityZone[]
