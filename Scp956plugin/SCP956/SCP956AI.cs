@@ -261,7 +261,7 @@ namespace SCP956Plugin.SCP956
 
         private bool CheckVisibility(Vector3 checkPos, Vector3 humanPos)
         {
-            return !Physics.Linecast(humanPos, checkPos, out RaycastHit hit, FpcStateProcessor.Mask) || hit.collider.transform.root.gameObject == this.gameObject;
+            return !Physics.Linecast(humanPos, checkPos, out RaycastHit hit, WallMask) || hit.collider.transform.root.gameObject == this.gameObject;
         }
 
         void UpdateVisual()
@@ -419,14 +419,15 @@ namespace SCP956Plugin.SCP956
             {
                 if (SCP956AI._mask == 0)
                 {
-                    SCP956AI._mask = LayerMask.GetMask(new string[]
+                    _mask = FpcStateProcessor.Mask;
+                    if (SCP956Plugin.Instance.Config.CanTargetThroughWindow)
                     {
-                        "Default",
-                        "CCTV",
-                        (!SCP956Plugin.Instance.Config.CanTargetThroughDoor ? "Door" : null),
-                        "Locker",
-                        (!SCP956Plugin.Instance.Config.CanTargetThroughWindow ? "Glass" : null)
-                    });
+                        _mask ^= 1 << LayerMask.NameToLayer("Glass");
+                    }
+                    if (SCP956Plugin.Instance.Config.CanTargetThroughDoor)
+                    {
+                        _mask ^= 1 << LayerMask.NameToLayer("Door");
+                    }
                 }
                 return SCP956AI._mask;
             }
