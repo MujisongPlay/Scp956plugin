@@ -1,4 +1,4 @@
-﻿using Exiled.API.Features;
+using Exiled.API.Features;
 using MapEditorReborn.Events.Handlers;
 using MEC;
 using SCP956Plugin.Handlers;
@@ -38,6 +38,7 @@ namespace SCP956Plugin
             Schematic.SchematicSpawned += SchematicHandler.OnSpawn;
             Schematic.SchematicDestroyed += SchematicHandler.OnDestroy;
             Exiled.Events.Handlers.Server.RoundStarted += OnRoundStart;
+            Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnd;
             Exiled.Events.Handlers.Player.ChangingItem += PlayerHandler.ChangeItem;
             Exiled.Events.Handlers.Player.DroppingItem += PlayerHandler.DropItem;
             Exiled.Events.Handlers.Player.InteractingDoor += PlayerHandler.InteractDoor;
@@ -50,6 +51,7 @@ namespace SCP956Plugin
             Schematic.SchematicSpawned -= SchematicHandler.OnSpawn;
             Exiled.Events.Handlers.Server.RoundStarted -= OnRoundStart;
             Schematic.SchematicDestroyed -= SchematicHandler.OnDestroy;
+            Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnd;
             Exiled.Events.Handlers.Player.ChangingItem -= PlayerHandler.ChangeItem;
             Exiled.Events.Handlers.Player.DroppingItem -= PlayerHandler.DropItem;
             Exiled.Events.Handlers.Player.InteractingDoor -= PlayerHandler.InteractDoor;
@@ -65,6 +67,11 @@ namespace SCP956Plugin
             CycleEvent();
         }
 
+        void OnRoundEnd(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
+        {
+            SchematicHandler.aIs.Clear();
+        }
+
         void CycleEvent()
         {
             if (SchematicHandler.aIs.Count >= Config.MaximumCountOfScp956)
@@ -75,7 +82,7 @@ namespace SCP956Plugin
                 });
                 return;
             }
-            MapEditorReborn.API.Features.ObjectSpawner.SpawnSchematic("Scp956", new Vector3(0f, -300f, 0f), Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f));
+            MapEditorReborn.API.Features.ObjectSpawner.SpawnSchematic(SCP956Plugin.Instance.Config.SchematicName, new Vector3(0f, -300f, 0f), Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f));
             Timing.CallDelayed(Config.SpawnTimer, () =>
             {
                 CycleEvent();
