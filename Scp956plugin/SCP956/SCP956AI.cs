@@ -21,8 +21,10 @@ namespace SCP956Plugin.SCP956
     {
         void Start()
         {
-            this.gameObject.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+            this.lerpRot = UnityEngine.Random.Range(0f, 360f);
+            this.gameObject.transform.rotation = Quaternion.Euler(0f, lerpRot, 0f);
             this.gameObject.transform.position += new Vector3(0f, config.SchematicOffsetHeight, 0f);
+            this.lerpPos = gameObject.transform.position;
             _spawnPos = this.gameObject.transform.position;
             rotateTime = config.TimeToRotateTowardTarget;
             moveTime = config.TimeToApproachTarget;
@@ -38,11 +40,6 @@ namespace SCP956Plugin.SCP956
                 return;
             }
             Timer += Time.deltaTime;
-            if (this.IsFlying)
-            {
-                Vector3 syncPos = this.transform.position + new Vector3(0f, Mathf.Sin(Time.timeSinceLevelLoad * 3.14f) * 0.15f, 0f);
-                this.transform.position = Vector3.Lerp(this.transform.position, syncPos, Time.deltaTime * 8f);
-            }
             foreach (ReferenceHub hub in ReferenceHub.AllHubs)
             {
                 if (hub.isLocalPlayer)
@@ -53,6 +50,10 @@ namespace SCP956Plugin.SCP956
                 {
                     if (Targetable.Remove(hub))
                     {
+                        if (Target == hub)
+                        {
+                            _sequenceTimer = 0f;
+                        }
                         Targeted.Remove(hub);
                         TimerPerReferenceHub.Remove(hub);
                         TurnEffects(hub, false);
@@ -89,12 +90,11 @@ namespace SCP956Plugin.SCP956
                 return;
             }
             bool flag = Target == null;
-            if (!flag && !PlayerCheck(this.Target))
+            if (!flag && !Targeted.Contains(Target))
             {
                 Target = null;
                 TargetPos = Vector3.zero;
                 flag = true;
-                _sequenceTimer = 0f;
             }
             if (flag)
             {
@@ -116,12 +116,13 @@ namespace SCP956Plugin.SCP956
                 }
                 this._sequenceTimer = 0f;
                 triggered = false;
-                this._initialRot = this.gameObject.transform.rotation.eulerAngles.y;
-                this._initialPos = this.gameObject.transform.position;
+                this._initialRot = this.lerpRot;
+                this._initialPos = this.lerpPos;
             }
             stopwatch = 0f;
             DestroyNow = false;
             Execution();
+            return;
         }
 
         void Execution()
@@ -130,7 +131,7 @@ namespace SCP956Plugin.SCP956
             TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
             Vector3 normalized = (TargetPos - this.gameObject.transform.position).normalized;
             float b = Vector3.Angle(normalized, Vector3.forward) * Mathf.Sign(Vector3.Dot(normalized, Vector3.right));
-            this.gameObject.transform.rotation = Quaternion.Euler(new Vector3(0f, Mathf.LerpAngle(this._initialRot, b, (this._sequenceTimer - coolTime) / (rotateTime - (coolTime + rotateTime / 6f))), 0f));
+            this.lerpRot = Mathf.LerpAngle(this._initialRot, b, (this._sequenceTimer - coolTime) / (rotateTime - (coolTime + rotateTime / 6f)));
             if (this._sequenceTimer < rotateTime)
             {
                 return;
@@ -146,7 +147,7 @@ namespace SCP956Plugin.SCP956
                 b2.y = this.TargetPos.y;
                 this.IsFlying = true;
             }
-            this.gameObject.transform.position = Vector3.Lerp(this._initialPos, b2, (this._sequenceTimer - rotateTime) / moveTime);
+            this.lerpPos = Vector3.Lerp(this._initialPos, b2, (this._sequenceTimer - rotateTime) / moveTime);
             if (Physics.Raycast(this.gameObject.transform.position, b2 - this._initialPos, out RaycastHit hit, 1f))
             {
                 DestroyDisturb(hit);
@@ -171,7 +172,7 @@ namespace SCP956Plugin.SCP956
                 player.PlayGunSound(config.DeathGunSoundSource, config.DeathGunSoundLoudness, config.DeathGunSoundClipNum);
             }
             this.Target.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReason));
-            _sequenceTimer = 0f;
+            this._sequenceTimer = 0f;
             Targetable.Remove(Target);
             Targeted.Remove(Target);
             TimerPerReferenceHub.Remove(Target);
@@ -268,6 +269,17 @@ namespace SCP956Plugin.SCP956
             stopwatch += Time.deltaTime;
             if (Spawned)
             {
+                if (this.IsFlying)
+                {
+                    lerpPos.y += Mathf.Sin(Time.timeSinceLevelLoad * 3.14f) * 0.15f;
+                }
+                if ((this.transform.position - lerpPos).sqrMagnitude > 9f)
+                {
+                    this.transform.position = this.lerpPos;
+                }
+                this.transform.SetPositionAndRotation(Vector3.Lerp(this.transform.position, lerpPos, Time.deltaTime * 8f), Quaternion.Lerp(this.transform.rotation, Quaternion.Euler(Vector3.up * this.lerpRot), Time.deltaTime * 10f));
+                this.lerpPos = this.transform.position;
+                this.lerpRot = this.transform.rotation.eulerAngles.y;
                 if (stopwatch >= (DestroyNow ? config.DespawnFailedTryAgainTime : config.DespawnTime))
                 {
                     if (config.DoNotDespawnWhileBeingWatched && IsWatched())
@@ -310,7 +322,8 @@ namespace SCP956Plugin.SCP956
                     IsFlying = false;
                     this.gameObject.transform.position = pos;
                     CurrentDoor = door;
-                    this.gameObject.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+                    this.lerpRot = UnityEngine.Random.Range(0f, 360f);
+                    this.gameObject.transform.rotation = Quaternion.Euler(0f, this.lerpRot, 0f);
                     DoorList.Add(door);
                     Spawned = true;
                 }
@@ -346,6 +359,7 @@ namespace SCP956Plugin.SCP956
             {
                 ServerConsole.AddLog("SCP-956 Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
             }
+            this.lerpPos = pos;
             return true;
         }
 
@@ -449,5 +463,9 @@ namespace SCP956Plugin.SCP956
         private float chargeTime;
 
         private float coolTime;
+
+        Vector3 lerpPos;
+
+        float lerpRot;
     }
 }
