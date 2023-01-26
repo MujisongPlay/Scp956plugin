@@ -94,23 +94,22 @@ namespace SCP956Plugin.SCP956
             {
                 Target = null;
                 TargetPos = Vector3.zero;
+                _sequenceTimer = 0f;
                 flag = true;
             }
             if (flag)
             {
                 float MinDistance = float.MaxValue;
-                bool FoundTarget = false;
                 foreach (ReferenceHub referenceHub in Targeted)
                 {
                     float sqrMagnitude = (referenceHub.PlayerCameraReference.position - this.transform.position).sqrMagnitude;
-                    if (sqrMagnitude < MinDistance)
+                    if (sqrMagnitude <= MinDistance)
                     {
                         Target = referenceHub;
                         MinDistance = sqrMagnitude;
-                        FoundTarget = true;
                     }
                 }
-                if (!FoundTarget)
+                if (Target == null)
                 {
                     return;
                 }
@@ -119,11 +118,18 @@ namespace SCP956Plugin.SCP956
                 this._initialRot = this.lerpRot;
                 this._initialPos = this.lerpPos;
             }
+            if (Target.roleManager.CurrentRole is FpcStandardRoleBase)
+            {
+                TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
+            }
+            else
+            {
+                TargetPos = Target.transform.position;
+            }
             stopwatch = 0f;
             DestroyNow = false;
             this._sequenceTimer += Time.deltaTime;
-            TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
-            Vector3 normalized = (TargetPos - this.gameObject.transform.position).normalized;
+            Vector3 normalized = (TargetPos - this.transform.position).normalized;
             float b = Vector3.Angle(normalized, Vector3.forward) * Mathf.Sign(Vector3.Dot(normalized, Vector3.right));
             this.lerpRot = Mathf.LerpAngle(this._initialRot, b, (this._sequenceTimer - coolTime) / (rotateTime - (coolTime + rotateTime / 6f)));
             if (this._sequenceTimer < rotateTime)
@@ -131,7 +137,7 @@ namespace SCP956Plugin.SCP956
                 return;
             }
             Vector3 b2 = this.TargetPos - this.gameObject.transform.forward.NormalizeIgnoreY();
-            if (Mathf.Abs(this._spawnPos.y - this.TargetPos.y) < 0.5f)
+            if (Mathf.Abs(this._spawnPos.y - this.TargetPos.y) < 1.2f)
             {
                 b2.y = this._spawnPos.y;
                 this.IsFlying = false;
@@ -236,6 +242,10 @@ namespace SCP956Plugin.SCP956
 
         void TurnEffects(ReferenceHub hub, bool Enable)
         {
+            if (Handlers.SchematicHandler.aIs.Any((SCP956AI x) => x.Targeted.Contains(hub)) && !Enable)
+            {
+                return;
+            }
             if (config.FreezeTarget)
             {
                 if (Enable)
@@ -291,13 +301,10 @@ namespace SCP956Plugin.SCP956
                         Timer = 0f;
                         TimerPerReferenceHub.Clear();
                         Targetable.Clear();
+                        Targeted.Clear();
                         Target = null;
                         Spawned = false;
-                        foreach (ReferenceHub hub in this.Targeted)
-                        {
-                            TurnEffects(hub, false);
-                        }
-                        Targeted.Clear();
+                        TargetPos = Vector3.zero;
                     }
                 }
             }
