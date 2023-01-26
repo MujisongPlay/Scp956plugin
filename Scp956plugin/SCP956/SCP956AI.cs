@@ -76,9 +76,9 @@ namespace SCP956Plugin.SCP956
                         Targeted.Add(hub);
                         TurnEffects(hub, true);
                     }
-                    else if (config.TargetingAmbient != -1 && Player.TryGet(hub, out Player player))
+                    else if (config.TargetingAmbient != -1 && Player.TryGet(hub, out Player target))
                     {
-                        Exiled.API.Extensions.MirrorExtensions.SendFakeTargetRpc(player, ReferenceHub.HostHub.networkIdentity, typeof(AmbientSoundPlayer), "RpcPlaySound", new object[]
+                        Exiled.API.Extensions.MirrorExtensions.SendFakeTargetRpc(target, ReferenceHub.HostHub.networkIdentity, typeof(AmbientSoundPlayer), "RpcPlaySound", new object[]
                         {
                             config.TargetingAmbient
                         });
@@ -121,12 +121,6 @@ namespace SCP956Plugin.SCP956
             }
             stopwatch = 0f;
             DestroyNow = false;
-            Execution();
-            return;
-        }
-
-        void Execution()
-        {
             this._sequenceTimer += Time.deltaTime;
             TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
             Vector3 normalized = (TargetPos - this.gameObject.transform.position).normalized;
@@ -348,19 +342,29 @@ namespace SCP956Plugin.SCP956
                     continue;
                 }
             }
+            IL_01:
             if (list.Count == 0)
             {
                 return false;
             }
-            doo = list.RandomItem();
+            int index = UnityEngine.Random.Range(0, list.Count - 1);
+            doo = list[index];
+            list.Remove(doo);
             Transform transform = doo.transform;
             pos = transform.position + 0.75f * (UnityEngine.Random.Range(0, 1) * 2f - 1f) * transform.forward + Vector3.up * config.SchematicOffsetHeight;
-            if (config.LogsItslocation)
+            if (Physics.SphereCast(pos, 0.5f, transform.right * (UnityEngine.Random.Range(0, 1) * 2f - 1f), out RaycastHit hit, 10f, FpcStateProcessor.Mask) && hit.distance >= 0.3f)
             {
-                ServerConsole.AddLog("SCP-956 Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
+                Vector3 vector = hit.point + hit.normal * 0.5f;
+                pos = new Vector3(vector.x, transform.position.y + config.SchematicOffsetHeight, vector.z);
+                Vector3 checkPos = pos;
+                if (config.LogsItslocation)
+                {
+                    ServerConsole.AddLog("SCP-956 Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
+                }
+                this.lerpPos = pos;
+                return true;
             }
-            this.lerpPos = pos;
-            return true;
+            goto IL_01;
         }
 
         void DestroyDisturb(RaycastHit hit)
