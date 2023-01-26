@@ -158,7 +158,7 @@ namespace SCP956Plugin.SCP956
             }
             if (!triggered)
             {
-                TurnEffects(Target, false);
+                TurnEffects(Target, false, true);
                 triggered = true;
             }
             if (this._sequenceTimer < chargeTime + moveTime + rotateTime)
@@ -240,9 +240,9 @@ namespace SCP956Plugin.SCP956
             return CandyKindID.Red;
         }
 
-        void TurnEffects(ReferenceHub hub, bool Enable)
+        void TurnEffects(ReferenceHub hub, bool Enable, bool SpecialOrder = false)
         {
-            if (Handlers.SchematicHandler.aIs.Any((SCP956AI x) => x.Targeted.Contains(hub)) && !Enable)
+            if (Handlers.SchematicHandler.aIs.Any((SCP956AI x) => x.Targeted.Contains(hub)) && !Enable && !SpecialOrder)
             {
                 return;
             }
