@@ -168,7 +168,6 @@ namespace SCP956Plugin.SCP956
             CreateCandies(normalized, Target);
             if (Player.TryGet(Target, out Player player))
             {
-                player.PlayShieldBreakSound();
                 player.PlayGunSound(config.DeathGunSoundSource, config.DeathGunSoundLoudness, config.DeathGunSoundClipNum);
             }
             this.Target.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReason));
