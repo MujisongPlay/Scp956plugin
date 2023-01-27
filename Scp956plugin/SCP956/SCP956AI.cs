@@ -184,18 +184,31 @@ namespace SCP956Plugin.SCP956
 
         private bool PlayerCheck(ReferenceHub hub)
         {
-            Vector3 position = this.gameObject.transform.position;
-            Vector3 position2 = (hub.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
-            float num = config.TargetMaximumDistance * config.TargetMaximumDistance;
-            if (!config.TargetableFaction.Contains(hub.roleManager.CurrentRole.Team.GetFaction()) || config.WhitelistRoles.Contains(hub.roleManager.CurrentRole.RoleTypeId) || (!config.CanTargetScp268 && hub.playerEffectsController.GetEffect<Invisible>().IsEnabled))
+            try
             {
+                if(hub != null)
+                {
+                    Vector3 position = this.gameObject.transform.position;
+                    Vector3 position2 = hub.gameObject.transform.localPosition;
+                    float num = config.TargetMaximumDistance * config.TargetMaximumDistance;
+                    if (!config.TargetableFaction.Contains(hub.roleManager.CurrentRole.Team.GetFaction()) || config.WhitelistRoles.Contains(hub.roleManager.CurrentRole.RoleTypeId) || (!config.CanTargetScp268 && hub.playerEffectsController.GetEffect<Invisible>().IsEnabled))
+                    {
+                        return false;
+                    }
+                    if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
+                    {
+                        return (position - position2).sqrMagnitude <= num && this.CheckVisibility(position, position2) && hub.roleManager.CurrentRole.RoleTypeId != RoleTypeId.Spectator;
+                    }
+                    return false;
+                }
                 return false;
             }
-            if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
+            catch(Exception e)
             {
-                return (position - position2).sqrMagnitude <= num && this.CheckVisibility(position, position2) && hub.roleManager.CurrentRole.RoleTypeId != RoleTypeId.Spectator;
+                Log.Info(e.Message);
+                Log.Info(e.GetBaseException());
+                return false;
             }
-            return false;
         }
 
         public void CreateCandies(Vector3 _velocity, ReferenceHub ply)
