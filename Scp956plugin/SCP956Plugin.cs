@@ -44,6 +44,7 @@ namespace SCP956Plugin
             Exiled.Events.Handlers.Player.InteractingDoor += PlayerHandler.InteractDoor;
             Exiled.Events.Handlers.Player.InteractingElevator += PlayerHandler.InteractElevator;
             Exiled.Events.Handlers.Player.InteractingLocker += PlayerHandler.InteractLocker;
+            Exiled.Events.Handlers.Player.Jumping += PlayerHandler.Jump;
         }
 
         void UnRegisterEvent()
@@ -57,6 +58,7 @@ namespace SCP956Plugin
             Exiled.Events.Handlers.Player.InteractingDoor -= PlayerHandler.InteractDoor;
             Exiled.Events.Handlers.Player.InteractingElevator -= PlayerHandler.InteractElevator;
             Exiled.Events.Handlers.Player.InteractingLocker -= PlayerHandler.InteractLocker;
+            Exiled.Events.Handlers.Player.Jumping -= PlayerHandler.Jump;
 
             SchematicHandler = null;
             PlayerHandler = null;
