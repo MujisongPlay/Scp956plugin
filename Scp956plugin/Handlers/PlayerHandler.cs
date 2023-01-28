@@ -27,49 +27,44 @@ namespace SCP956Plugin.Handlers
 
         public void ChangeItem(ChangingItemEventArgs ev)
         {
-            if (!IsAllowed(ev.Player.ReferenceHub))
-            {
-                ev.IsAllowed = false;
-            }
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
         }
 
         public void DropItem(DroppingItemEventArgs ev)
         {
-            if (!IsAllowed(ev.Player.ReferenceHub))
-            {
-                ev.IsAllowed = false;
-            }
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
         }
 
         public void InteractDoor(InteractingDoorEventArgs ev)
         {
-            if (!IsAllowed(ev.Player.ReferenceHub))
-            {
-                ev.IsAllowed = false;
-            }
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
         }
 
         public void InteractElevator(InteractingElevatorEventArgs ev)
         {
-            if (!IsAllowed(ev.Player.ReferenceHub))
-            {
-                ev.IsAllowed = false;
-            }
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
         }
 
         public void InteractLocker(InteractingLockerEventArgs ev)
         {
-            if (!IsAllowed(ev.Player.ReferenceHub))
-            {
-                ev.IsAllowed = false;
-            }
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
         }
 
         public void Jump(JumpingEventArgs ev)
         {
-            if (!IsAllowed(ev.Player.ReferenceHub))
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+        }
+
+        public void OnQuit(LeftEventArgs ev)
+        {
+            foreach (SCP956AI aI in SchematicHandler.aIs)
             {
-                ev.IsAllowed = false;
+                if (aI.Target == ev.Player.ReferenceHub)
+                {
+                    aI.Target = null;
+                }
+                aI.Targetable.Remove(ev.Player.ReferenceHub);
+                aI.Targeted.Remove(ev.Player.ReferenceHub);
             }
         }
     }
