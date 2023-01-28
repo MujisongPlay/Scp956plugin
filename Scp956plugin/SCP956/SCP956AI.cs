@@ -14,6 +14,7 @@ using UnityEngine;
 using InventorySystem;
 using InventorySystem.Items.Pickups;
 using InventorySystem.Items.Usables.Scp330;
+using System;
 
 namespace SCP956Plugin.SCP956
 {
@@ -72,8 +73,9 @@ namespace SCP956Plugin.SCP956
                     }
                 }
                 Timer += Time.deltaTime;
-                foreach (ReferenceHub hub in ReferenceHub.AllHubs)
+                foreach (Player player1 in Player.List)
                 {
+                    var hub = player1.ReferenceHub;
                     if (hub.isLocalPlayer)
                     {
                         continue;
@@ -111,7 +113,7 @@ namespace SCP956Plugin.SCP956
                         }
                     }
                 }
-                bool flag = Target == null;
+                bool flag = (Target is null);
                 if (!flag && !PlayerCheck(Target))
                 {
                     Target = null;
@@ -121,7 +123,12 @@ namespace SCP956Plugin.SCP956
                 {
                     SetTarget();
                 }
-                TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
+
+                if (Target is null)
+                {
+                    return;
+                }
+                TargetPos = Target.gameObject.transform.position;
                 stopwatch = 0f;
                 DestroyNow = false;
                 this._sequenceTimer += Time.deltaTime;
@@ -208,7 +215,7 @@ namespace SCP956Plugin.SCP956
                     MinDistance = sqrMagnitude;
                 }
             }
-            if (Target == null)
+            if (Target is null)
             {
                 return;
             }
@@ -238,16 +245,20 @@ namespace SCP956Plugin.SCP956
 
         private bool PlayerCheck(ReferenceHub hub)
         {
-            Vector3 position = this.gameObject.transform.position;
-            Vector3 position2 = (hub.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
-            float num = config.TargetMaximumDistance * config.TargetMaximumDistance;
-            if (!config.TargetableFaction.Contains(hub.roleManager.CurrentRole.Team.GetFaction()) || config.WhitelistRoles.Contains(hub.roleManager.CurrentRole.RoleTypeId) || (!config.CanTargetScp268 && hub.playerEffectsController.GetEffect<Invisible>().IsEnabled))
+            if (hub != null)
             {
+                Vector3 position = this.gameObject.transform.position;
+                Vector3 position2 = hub.gameObject.transform.localPosition;
+                float num = config.TargetMaximumDistance * config.TargetMaximumDistance;
+                if (!config.TargetableFaction.Contains(hub.roleManager.CurrentRole.Team.GetFaction()) || config.WhitelistRoles.Contains(hub.roleManager.CurrentRole.RoleTypeId) || (!config.CanTargetScp268 && hub.playerEffectsController.GetEffect<Invisible>().IsEnabled))
+                {
+                    return false;
+                }
+                if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
+                {
+                    return (position - position2).sqrMagnitude <= num && this.CheckVisibility(position, position2) && hub.roleManager.CurrentRole.RoleTypeId != RoleTypeId.Spectator;
+                }
                 return false;
-            }
-            if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
-            {
-                return (position - position2).sqrMagnitude <= num && this.CheckVisibility(position, position2) && hub.roleManager.CurrentRole.RoleTypeId != RoleTypeId.Spectator;
             }
             return false;
         }
@@ -344,7 +355,7 @@ namespace SCP956Plugin.SCP956
                     continue;
                 }
             }
-            IL_01:
+        IL_01:
             if (list.Count == 0)
             {
                 return false;
