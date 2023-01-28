@@ -34,150 +34,204 @@ namespace SCP956Plugin.SCP956
 
         void Update()
         {
-            this.UpdateVisual();
-            if (!this.Spawned)
+            stopwatch += Time.deltaTime;
+            if (Spawned)
             {
-                return;
-            }
-            Timer += Time.deltaTime;
-            foreach (ReferenceHub hub in ReferenceHub.AllHubs)
-            {
-                if (hub.isLocalPlayer)
+                if (this.IsFlying)
                 {
-                    continue;
+                    lerpPos.y += Mathf.Sin(Time.timeSinceLevelLoad * 3.14f) * 0.15f;
                 }
-                if (!PlayerCheck(hub))
+                if ((this.transform.position - lerpPos).sqrMagnitude > 9f)
                 {
-                    if (Targetable.Remove(hub))
+                    this.transform.position = this.lerpPos;
+                }
+                this.transform.SetPositionAndRotation(Vector3.Lerp(this.transform.position, lerpPos, Time.deltaTime * 8f), Quaternion.Lerp(this.transform.rotation, Quaternion.Euler(Vector3.up * this.lerpRot), Time.deltaTime * 10f));
+                this.lerpPos = this.transform.position;
+                this.lerpRot = this.transform.rotation.eulerAngles.y;
+                if (stopwatch >= (DestroyNow ? config.DespawnFailedTryAgainTime : config.DespawnTime))
+                {
+                    if (!TryDespawn())
                     {
-                        if (Target == hub)
-                        {
-                            _sequenceTimer = 0f;
-                        }
+                        DestroyNow = true;
+                        stopwatch = 0f;
+                    }
+                    else
+                    {
+                        DestroyNow = false;
+                        this.gameObject.transform.position = new Vector3(0f, -300f, 0f);
+                        stopwatch = 0f;
+                        DoorList.Remove(CurrentDoor);
+                        CurrentDoor = null;
+                        Timer = 0f;
+                        TimerPerReferenceHub.Clear();
+                        Targetable.Clear();
+                        Targeted.Clear();
+                        Target = null;
+                        Spawned = false;
+                        TargetPos = Vector3.zero;
+                    }
+                }
+                Timer += Time.deltaTime;
+                foreach (ReferenceHub hub in ReferenceHub.AllHubs)
+                {
+                    if (hub.isLocalPlayer)
+                    {
+                        continue;
+                    }
+                    if (!PlayerCheck(hub))
+                    {
+                        Targetable.Remove(hub);
                         Targeted.Remove(hub);
                         TimerPerReferenceHub.Remove(hub);
                         TurnEffects(hub, false);
                     }
-                }
-                else
-                {
-                    if (!Targetable.Contains(hub))
+                    else
                     {
-                        Targetable.Add(hub);
-                        TimerPerReferenceHub.Add(hub, Timer);
-                        if (config.ResetTimerWhenTargetablePlayerObserved)
+                        if (!Targetable.Contains(hub))
                         {
-                            DestroyNow = false;
-                            stopwatch = 0f;
+                            Targetable.Add(hub);
+                            TimerPerReferenceHub.Add(hub, Timer);
+                            if (config.ResetTimerWhenTargetablePlayerObserved)
+                            {
+                                DestroyNow = false;
+                                stopwatch = 0f;
+                            }
+                        }
+                        else if (TimerPerReferenceHub.TryGetValue(hub, out float time) && Timer - time >= config.TimeScp330OwnerTargeting && !Targeted.Contains(hub))
+                        {
+                            Targeted.Add(hub);
+                            TurnEffects(hub, true);
+                        }
+                        else if (config.TargetingAmbient != -1 && Player.TryGet(hub, out Player target))
+                        {
+                            Exiled.API.Extensions.MirrorExtensions.SendFakeTargetRpc(target, ReferenceHub.HostHub.networkIdentity, typeof(AmbientSoundPlayer), "RpcPlaySound", new object[]
+                            {
+                            config.TargetingAmbient
+                            });
                         }
                     }
-                    else if (TimerPerReferenceHub.TryGetValue(hub, out float time) && Timer - time >= config.TimeScp330OwnerTargeting && !Targeted.Contains(hub))
-                    {
-                        Targeted.Add(hub);
-                        TurnEffects(hub, true);
-                    }
-                    else if (config.TargetingAmbient != -1 && Player.TryGet(hub, out Player target))
-                    {
-                        Exiled.API.Extensions.MirrorExtensions.SendFakeTargetRpc(target, ReferenceHub.HostHub.networkIdentity, typeof(AmbientSoundPlayer), "RpcPlaySound", new object[]
-                        {
-                            config.TargetingAmbient
-                        });
-                    }
                 }
-            }
-            if (Targeted.Count == 0)
-            {
-                return;
-            }
-            bool flag = Target == null;
-            if (!flag && !Targeted.Contains(Target))
-            {
-                Target = null;
-                TargetPos = Vector3.zero;
-                _sequenceTimer = 0f;
-                flag = true;
-            }
-            if (flag)
-            {
-                float MinDistance = float.MaxValue;
-                foreach (ReferenceHub referenceHub in Targeted)
+                bool flag = Target == null;
+                if (!flag && !PlayerCheck(Target))
                 {
-                    float sqrMagnitude = (referenceHub.PlayerCameraReference.position - this.transform.position).sqrMagnitude;
-                    if (sqrMagnitude <= MinDistance)
-                    {
-                        Target = referenceHub;
-                        MinDistance = sqrMagnitude;
-                    }
+                    Target = null;
+                    flag = true;
                 }
-                if (Target == null)
+                if (flag)
+                {
+                    SetTarget();
+                }
+                TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
+                stopwatch = 0f;
+                DestroyNow = false;
+                this._sequenceTimer += Time.deltaTime;
+                Vector3 normalized = (TargetPos - this.transform.position).normalized;
+                float b = Vector3.Angle(normalized, Vector3.forward) * Mathf.Sign(Vector3.Dot(normalized, Vector3.right));
+                this.lerpRot = Mathf.LerpAngle(this._initialRot, b, (this._sequenceTimer - coolTime) / (rotateTime - (coolTime + rotateTime / 6f)));
+                if (this._sequenceTimer < rotateTime)
                 {
                     return;
                 }
-                this._sequenceTimer = 0f;
-                triggered = false;
-                this._initialRot = this.lerpRot;
-                this._initialPos = this.lerpPos;
-            }
-            if (Target.roleManager.CurrentRole is FpcStandardRoleBase)
-            {
-                TargetPos = (Target.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position;
+                Vector3 b2 = this.TargetPos - this.gameObject.transform.forward.NormalizeIgnoreY();
+                if (Mathf.Abs(this._spawnPos.y - this.TargetPos.y) < 1.2f)
+                {
+                    b2.y = this._spawnPos.y;
+                    this.IsFlying = false;
+                }
+                else
+                {
+                    b2.y = this.TargetPos.y;
+                    this.IsFlying = true;
+                }
+                this.lerpPos = Vector3.Lerp(this._initialPos, b2, (this._sequenceTimer - rotateTime) / moveTime);
+                if (Physics.Raycast(this.gameObject.transform.position, b2 - this._initialPos, out RaycastHit hit, 1f))
+                {
+                    DestroyDisturb(hit);
+                }
+                if (this._sequenceTimer < chargeTime + moveTime + rotateTime - 0.2f)
+                {
+                    return;
+                }
+                if (!triggered)
+                {
+                    TurnEffects(Target, false, true);
+                    triggered = true;
+                }
+                if (this._sequenceTimer < chargeTime + moveTime + rotateTime)
+                {
+                    return;
+                }
+                CreateCandies(normalized, Target);
+                if (Player.TryGet(Target, out Player player))
+                {
+                    player.PlayGunSound(config.DeathGunSoundSource, config.DeathGunSoundLoudness, config.DeathGunSoundClipNum);
+                }
+                this.Target.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReason));
+                Targeted.Remove(Target);
+                SetTarget();
+                return;
             }
             else
             {
-                TargetPos = Target.transform.position;
+                if (stopwatch >= config.SpawnTimer && config.SpawnableZone.Length != 0)
+                {
+                    Vector3 pos;
+                    DoorVariant door;
+                    stopwatch = 0f;
+                    if (!TryGetSpawnPos(out pos, out door))
+                    {
+                        return;
+                    }
+                    this.lerpPos = pos;
+                    _spawnPos = pos;
+                    IsFlying = false;
+                    this.gameObject.transform.position = pos;
+                    CurrentDoor = door;
+                    this.lerpRot = UnityEngine.Random.Range(0f, 360f);
+                    this.gameObject.transform.rotation = Quaternion.Euler(0f, this.lerpRot, 0f);
+                    DoorList.Add(door);
+                    Spawned = true;
+                    return;
+                }
             }
-            stopwatch = 0f;
-            DestroyNow = false;
-            this._sequenceTimer += Time.deltaTime;
-            Vector3 normalized = (TargetPos - this.transform.position).normalized;
-            float b = Vector3.Angle(normalized, Vector3.forward) * Mathf.Sign(Vector3.Dot(normalized, Vector3.right));
-            this.lerpRot = Mathf.LerpAngle(this._initialRot, b, (this._sequenceTimer - coolTime) / (rotateTime - (coolTime + rotateTime / 6f)));
-            if (this._sequenceTimer < rotateTime)
+        }
+
+        private void SetTarget()
+        {
+            float MinDistance = float.MaxValue;
+            foreach (ReferenceHub referenceHub in Targeted)
+            {
+                float sqrMagnitude = Vector3.Distance(referenceHub.PlayerCameraReference.position, this.gameObject.transform.position);
+                if (sqrMagnitude <= MinDistance)
+                {
+                    Target = referenceHub;
+                    MinDistance = sqrMagnitude;
+                }
+            }
+            if (Target == null)
             {
                 return;
             }
-            Vector3 b2 = this.TargetPos - this.gameObject.transform.forward.NormalizeIgnoreY();
-            if (Mathf.Abs(this._spawnPos.y - this.TargetPos.y) < 1.2f)
-            {
-                b2.y = this._spawnPos.y;
-                this.IsFlying = false;
-            }
-            else
-            {
-                b2.y = this.TargetPos.y;
-                this.IsFlying = true;
-            }
-            this.lerpPos = Vector3.Lerp(this._initialPos, b2, (this._sequenceTimer - rotateTime) / moveTime);
-            if (Physics.Raycast(this.gameObject.transform.position, b2 - this._initialPos, out RaycastHit hit, 1f))
-            {
-                DestroyDisturb(hit);
-            }
-            if (this._sequenceTimer < chargeTime + moveTime + rotateTime - 0.2f)
-            {
-                return;
-            }
-            if (!triggered)
-            {
-                TurnEffects(Target, false, true);
-                triggered = true;
-            }
-            if (this._sequenceTimer < chargeTime + moveTime + rotateTime)
-            {
-                return;
-            }
-            CreateCandies(normalized, Target);
-            if (Player.TryGet(Target, out Player player))
-            {
-                player.PlayGunSound(config.DeathGunSoundSource, config.DeathGunSoundLoudness, config.DeathGunSoundClipNum);
-            }
-            this.Target.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReason));
             this._sequenceTimer = 0f;
-            Targetable.Remove(Target);
-            Targeted.Remove(Target);
-            TimerPerReferenceHub.Remove(Target);
-            Target = null;
             triggered = false;
-            return;
+            this._initialRot = this.lerpRot;
+            this._initialPos = this.lerpPos;
+        }
+
+        private bool TryDespawn()
+        {
+            if (!config.DoNotDespawnWhileBeingWatched)
+            {
+                Vector3 currentPos = this.gameObject.transform.position;
+                foreach (ReferenceHub hub in ReferenceHub.AllHubs)
+                {
+                    if (CheckVisibility(currentPos, hub.PlayerCameraReference.position))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         bool triggered = false;
@@ -241,9 +295,15 @@ namespace SCP956Plugin.SCP956
 
         void TurnEffects(ReferenceHub hub, bool Enable, bool SpecialOrder = false)
         {
-            if (Handlers.SchematicHandler.aIs.Any((SCP956AI x) => x.Targeted.Contains(hub)) && !Enable && !SpecialOrder)
+            if (!Enable && !SpecialOrder)
             {
-                return;
+                foreach (SCP956AI aI in Handlers.SchematicHandler.aIs)
+                {
+                    if (aI.Targeted.Contains(hub) && aI != this)
+                    {
+                        return;
+                    }
+                }
             }
             if (config.FreezeTarget)
             {
@@ -264,71 +324,7 @@ namespace SCP956Plugin.SCP956
 
         private bool CheckVisibility(Vector3 checkPos, Vector3 humanPos)
         {
-            return !Physics.Linecast(humanPos, checkPos, out RaycastHit hit, WallMask) || hit.collider.transform.root.gameObject == this.gameObject;
-        }
-
-        void UpdateVisual()
-        {
-            stopwatch += Time.deltaTime;
-            if (Spawned)
-            {
-                if (this.IsFlying)
-                {
-                    lerpPos.y += Mathf.Sin(Time.timeSinceLevelLoad * 3.14f) * 0.15f;
-                }
-                if ((this.transform.position - lerpPos).sqrMagnitude > 9f)
-                {
-                    this.transform.position = this.lerpPos;
-                }
-                this.transform.SetPositionAndRotation(Vector3.Lerp(this.transform.position, lerpPos, Time.deltaTime * 8f), Quaternion.Lerp(this.transform.rotation, Quaternion.Euler(Vector3.up * this.lerpRot), Time.deltaTime * 10f));
-                this.lerpPos = this.transform.position;
-                this.lerpRot = this.transform.rotation.eulerAngles.y;
-                if (stopwatch >= (DestroyNow ? config.DespawnFailedTryAgainTime : config.DespawnTime))
-                {
-                    if (config.DoNotDespawnWhileBeingWatched && IsWatched())
-                    {
-                        DestroyNow = true;
-                        stopwatch = 0f;
-                    }
-                    else
-                    {
-                        DestroyNow = false;
-                        this.gameObject.transform.position = new Vector3(0f, -300f, 0f);
-                        stopwatch = 0f;
-                        DoorList.Remove(CurrentDoor);
-                        CurrentDoor = null;
-                        Timer = 0f;
-                        TimerPerReferenceHub.Clear();
-                        Targetable.Clear();
-                        Targeted.Clear();
-                        Target = null;
-                        Spawned = false;
-                        TargetPos = Vector3.zero;
-                    }
-                }
-            }
-            else
-            {
-                if (stopwatch >= config.SpawnTimer && config.SpawnableZone.Length != 0)
-                {
-                    Vector3 pos;
-                    DoorVariant door;
-                    stopwatch = 0f;
-                    if (!TryGetSpawnPos(out pos, out door))
-                    {
-                        return;
-                    }
-                    _spawnPos = pos;
-                    IsFlying = false;
-                    this.gameObject.transform.position = pos;
-                    CurrentDoor = door;
-                    this.lerpRot = UnityEngine.Random.Range(0f, 360f);
-                    this.gameObject.transform.rotation = Quaternion.Euler(0f, this.lerpRot, 0f);
-                    DoorList.Add(door);
-                    Spawned = true;
-                }
-            }
-            return;
+            return !Physics.Linecast(humanPos, checkPos, out RaycastHit hit, WallMask) || hit.collider.transform.root.gameObject.TryGetComponent<SCP956AI>(out SCP956AI aI);
         }
 
         public bool TryGetSpawnPos(out Vector3 pos, out DoorVariant doo)
@@ -362,12 +358,10 @@ namespace SCP956Plugin.SCP956
             {
                 Vector3 vector = hit.point + hit.normal * 0.5f;
                 pos = new Vector3(vector.x, transform.position.y + config.SchematicOffsetHeight, vector.z);
-                Vector3 checkPos = pos;
                 if (config.LogsItslocation)
                 {
-                    ServerConsole.AddLog("SCP-956 Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
+                    ServerConsole.AddLog(config.SchematicName + " Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
                 }
-                this.lerpPos = pos;
                 return true;
             }
             goto IL_01;
@@ -391,24 +385,6 @@ namespace SCP956Plugin.SCP956
                     hub.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReasonDIsturbingWay));
                 }
             }
-        }
-
-        public void SpecialConstruction()
-        {
-            Spawned = false;
-        }
-
-        bool IsWatched()
-        {
-            ReferenceHub[] hubs = ReferenceHub.AllHubs.ToArray<ReferenceHub>();
-            foreach (ReferenceHub hub in hubs)
-            {
-                if (CheckVisibility(this.gameObject.transform.position, hub.PlayerCameraReference.position))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         public float stopwatch = 0f;
