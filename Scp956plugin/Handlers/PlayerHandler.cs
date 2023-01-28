@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -58,6 +58,14 @@ namespace SCP956Plugin.Handlers
         }
 
         public void InteractLocker(InteractingLockerEventArgs ev)
+        {
+            if (!IsAllowed(ev.Player.ReferenceHub))
+            {
+                ev.IsAllowed = false;
+            }
+        }
+
+        public void Jump(JumpingEventArgs ev)
         {
             if (!IsAllowed(ev.Player.ReferenceHub))
             {
