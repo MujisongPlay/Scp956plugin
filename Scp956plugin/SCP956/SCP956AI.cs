@@ -137,7 +137,7 @@ namespace SCP956Plugin.SCP956
                     return;
                 }
                 Vector3 b2 = this.TargetPos - this.gameObject.transform.forward.NormalizeIgnoreY();
-                if (Mathf.Abs(this._spawnPos.y - this.TargetPos.y) < 0.5f)
+                if (Mathf.Abs(this._spawnPos.y - this.TargetPos.y) < 1.2f)
                 {
                     b2.y = this._spawnPos.y;
                     this.IsFlying = false;
