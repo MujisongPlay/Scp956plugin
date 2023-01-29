@@ -27,32 +27,32 @@ namespace SCP956Plugin.Handlers
 
         public void ChangeItem(ChangingItemEventArgs ev)
         {
-            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub) ? ev.IsAllowed : false;
         }
 
         public void DropItem(DroppingItemEventArgs ev)
         {
-            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub) ? ev.IsAllowed : false;
         }
 
         public void InteractDoor(InteractingDoorEventArgs ev)
         {
-            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub) ? ev.IsAllowed : false;
         }
 
         public void InteractElevator(InteractingElevatorEventArgs ev)
         {
-            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub) ? ev.IsAllowed : false;
         }
 
         public void InteractLocker(InteractingLockerEventArgs ev)
         {
-            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub) ? ev.IsAllowed : false;
         }
 
         public void Jump(JumpingEventArgs ev)
         {
-            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub);
+            ev.IsAllowed = IsAllowed(ev.Player.ReferenceHub) ? ev.IsAllowed : false;
         }
 
         public void OnQuit(LeftEventArgs ev)
