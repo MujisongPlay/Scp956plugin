@@ -96,5 +96,20 @@ namespace SCP956Plugin
         [Description("If it passes the probability below, turns the first candy into a pink candy.")]
         public bool UseSpecialCandyPinkSpawnMethod { get; set; } = true;
         public float SpecialMethodPercentage { get; set; } = 5f;
+
+        //Extension
+        public bool Scp956CanHit { get; set; } = false;
+        public float Scp956Hp { get; set; } = 300f;
+        public bool ExplodeWhenScp956Dead { get; set; } = false;
+        public DamageType[] DamagableTypes { get; set; } = new DamageType[]
+        {
+            DamageType.Firearm,
+            DamageType.Explosion
+        };
+        public bool WhenDieMakeCandies { get; set; } = true;
+        public bool AddTargetableWhoDamageScp956 { get; set; } = true;
+        public float DamageScp956RememberTimer { get; set; } = 30f;
+        public float DamageScp956TargetedTimer { get; set; } = 1.5f;
+        public bool PriorAngerTargetingTimer { get; set; } = true;
     }
 }
