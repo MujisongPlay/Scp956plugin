@@ -252,6 +252,7 @@ namespace SCP956Plugin.SCP956
                 return;
             }
             Health -= damage;
+            Hitmarker.SendHitmarker(attacker, 1f);
             if (config.AddTargetableWhoDamageScp956)
             {
                 TimerForAnger[attacker] = config.DamageScp956RememberTimer + Timer;
