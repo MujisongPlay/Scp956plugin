@@ -15,6 +15,8 @@ using InventorySystem;
 using InventorySystem.Items.Pickups;
 using InventorySystem.Items.Usables.Scp330;
 using MapGeneration;
+using InventorySystem.Items.ThrowableProjectiles;
+using Exiled.API.Features.Items;
 
 namespace SCP956Plugin.SCP956
 {
@@ -31,6 +33,11 @@ namespace SCP956Plugin.SCP956
             this.moveTime = config.TimeToApproachTarget;
             this.chargeTime = config.TimeToCharge;
             this.coolTime = config.CooldownToFaceAnotherTarget;
+            if (config.Scp956CanHit)
+            {
+                this.GetBounds();
+                Health = config.Scp956Hp;
+            }
         }
 
         void Update()
@@ -58,18 +65,7 @@ namespace SCP956Plugin.SCP956
                     }
                     else
                     {
-                        DestroyNow = false;
-                        this.gameObject.transform.position = new Vector3(0f, -300f, 0f);
-                        statusTimer = 0f;
-                        DoorList.Remove(CurrentDoor);
-                        CurrentDoor = null;
-                        Timer = 0f;
-                        TimerPerReferenceHub.Clear();
-                        Targetable.Clear();
-                        Targeted.Clear();
-                        Target = null;
-                        Spawned = false;
-                        TargetPos = Vector3.zero;
+                        DestroyScp956();
                     }
                 }
                 Timer += Time.deltaTime;
@@ -79,7 +75,8 @@ namespace SCP956Plugin.SCP956
                     {
                         continue;
                     }
-                    if (!PlayerCheck(hub))
+                    TargetingReason reason;
+                    if (!PlayerCheck(hub, out reason))
                     {
                         Targetable.Remove(hub);
                         Targeted.Remove(hub);
@@ -88,17 +85,17 @@ namespace SCP956Plugin.SCP956
                     }
                     else
                     {
-                        if (!Targetable.Contains(hub))
+                        if (!Targetable.Keys.Contains(hub))
                         {
-                            Targetable.Add(hub);
-                            TimerPerReferenceHub.Add(hub, Timer);
+                            Targetable.Add(hub, reason);
+                            TimerPerReferenceHub.Add(hub, Timer + TimePerReason[reason]);
                             if (config.ResetTimerWhenTargetablePlayerObserved)
                             {
                                 DestroyNow = false;
                                 statusTimer = 0f;
                             }
                         }
-                        else if (TimerPerReferenceHub.TryGetValue(hub, out float time) && Timer - time >= config.TimeScp330OwnerTargeting && !Targeted.Contains(hub))
+                        else if (TimerPerReferenceHub.TryGetValue(hub, out float time) && Timer >= time && !Targeted.Contains(hub))
                         {
                             Targeted.Add(hub);
                             TurnEffects(hub, true);
@@ -113,7 +110,7 @@ namespace SCP956Plugin.SCP956
                     }
                 }
                 bool flag = Target == null;
-                if (!flag && !PlayerCheck(Target))
+                if (!flag && !PlayerCheck(Target, out TargetingReason reason1))
                 {
                     Target = null;
                     flag = true;
@@ -165,7 +162,7 @@ namespace SCP956Plugin.SCP956
                 {
                     return;
                 }
-                CreateCandies(normalized, Target);
+                CreateCandies(normalized, Target, Vector3.zero);
                 if (Player.TryGet(Target, out Player player))
                 {
                     player.PlayGunSound(config.DeathGunSoundSource, config.DeathGunSoundLoudness, config.DeathGunSoundClipNum);
@@ -195,6 +192,10 @@ namespace SCP956Plugin.SCP956
                     this.gameObject.transform.rotation = Quaternion.Euler(0f, this.lerpRot, 0f);
                     DoorList.Add(door);
                     Spawned = true;
+                    if (config.Scp956CanHit)
+                    {
+                        Health = config.Scp956Hp;
+                    }
                     return;
                 }
             }
@@ -224,6 +225,104 @@ namespace SCP956Plugin.SCP956
             return true;
         }
 
+        public void OnShot(Exiled.Events.EventArgs.Player.ShootingEventArgs ev)
+        {
+            Transform transform = ev.Player.CameraTransform;
+            Ray ray = new Ray(transform.position, ev.ShotPosition - transform.position);
+            if (bounds.IntersectRay(ray, out float distance))
+            {
+                Damage((ev.Player.CurrentItem as Firearm).Base.BaseStats.BaseDamage, ev.Player.ReferenceHub);
+            }
+        }
+
+        public void OnExplosion(Exiled.Events.EventArgs.Map.ExplodingGrenadeEventArgs ev)
+        {
+            if (CheckVisibility(this.transform.position, ev.Position) && Vector3.Distance(ev.Position, this.transform.position) <= 9f)
+            {
+                Damage(400f / Mathf.Max(1f, Mathf.Pow(Vector3.Distance(ev.Position, this.transform.position), 2f)), ev.Player.ReferenceHub);
+            }
+        }
+
+        public void Damage(float damage, ReferenceHub attacker)
+        {
+            Health -= damage;
+            if (config.AddTargetableWhoDamageScp956)
+            {
+                TimerForAnger[attacker] = config.DamageScp956RememberTimer + Timer;
+            }
+            if (Health <= 0f)
+            {
+                if (config.WhenDieMakeCandies)
+                {
+                    CreateCandies(Vector3.zero, attacker, gameObject.transform.position);
+                }
+                if (config.ExplodeWhenScp956Dead)
+                {
+                    ItemBase itemBase;
+                    if (!InventoryItemLoader.AvailableItems.TryGetValue(ItemType.GrenadeHE, out itemBase))
+                    {
+                        return;
+                    }
+                    ThrowableItem throwableItem;
+                    ExplosionGrenade explosionGrenade;
+                    if ((throwableItem = (itemBase as ThrowableItem)) == null || (explosionGrenade = (throwableItem.Projectile as ExplosionGrenade)) == null)
+                    {
+                        return;
+                    }
+                    ExplosionGrenade.Explode(new Footprinting.Footprint(), this.gameObject.transform.position, explosionGrenade);
+                }
+                DestroyScp956();
+            }
+        }
+
+        void DestroyScp956()
+        {
+            DestroyNow = false;
+            this.gameObject.transform.position = new Vector3(0f, -300f, 0f);
+            statusTimer = 0f;
+            DoorList.Remove(CurrentDoor);
+            CurrentDoor = null;
+            Timer = 0f;
+            TimerPerReferenceHub.Clear();
+            Targetable.Clear();
+            Targeted.Clear();
+            TimerForAnger.Clear();
+            Target = null;
+            Spawned = false;
+            TargetPos = Vector3.zero;
+            foreach (ReferenceHub hub in Targeted)
+            {
+                Targeted.Remove(hub);
+                TurnEffects(hub, false);
+            }
+            Targetable.Clear();
+            TimerPerReferenceHub.Clear();
+        }
+
+        void GetBounds()
+        {
+            foreach (Renderer renderer in this.gameObject.GetComponentsInChildren<Renderer>())
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        public enum TargetingReason
+        {
+            NormalCondition,
+            AngerScp956
+        }
+
+        public Dictionary<TargetingReason, float> TimePerReason = new Dictionary<TargetingReason, float>
+        {
+            {TargetingReason.NormalCondition, SCP956Plugin.Instance.Config.TimeScp330OwnerTargeting},
+            {TargetingReason.AngerScp956, SCP956Plugin.Instance.Config.DamageScp956TargetedTimer }
+        };
+
+        Bounds bounds = new Bounds();
+
+        ExplosionGrenade grenade = null;
+
         private bool TryDespawn()
         {
             if (!config.DoNotDespawnWhileBeingWatched)
@@ -240,8 +339,9 @@ namespace SCP956Plugin.SCP956
             return true;
         }
 
-        private bool PlayerCheck(ReferenceHub hub)
+        private bool PlayerCheck(ReferenceHub hub, out TargetingReason reason)
         {
+            reason = TargetingReason.NormalCondition;
             if (hub.roleManager.CurrentRole.RoleTypeId == RoleTypeId.Spectator)
             {
                 return false;
@@ -253,20 +353,38 @@ namespace SCP956Plugin.SCP956
             {
                 return false;
             }
+            if ((position - position2).sqrMagnitude > num || !this.CheckVisibility(position, position2))
+            {
+                return false;
+            }
+            bool flag = false;
+            if (TimerForAnger.TryGetValue(hub, out float time) && Timer <= time)
+            {
+                flag = true;
+            }
             if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
             {
-                return (position - position2).sqrMagnitude <= num && this.CheckVisibility(position, position2);
+                if (config.PriorAngerTargetingTimer && flag)
+                {
+                    reason = TargetingReason.AngerScp956;
+                }
+                return true;
             }
-            return false;
+            reason = TargetingReason.AngerScp956;
+            return flag;
         }
 
-        public void CreateCandies(Vector3 _velocity, ReferenceHub ply)
+        public void CreateCandies(Vector3 _velocity, ReferenceHub ply, Vector3 vector3)
         {
             _velocity = (_velocity * 3f + Vector3.up) * 9f;
             Scp330Bag scp330Bag;
             if (!InventoryItemLoader.TryGetItem<Scp330Bag>(ItemType.SCP330, out scp330Bag))
             {
                 return;
+            }
+            if (vector3 == Vector3.zero)
+            {
+                vector3 = ply.transform.position;
             }
             int num = (UnityEngine.Random.value < config.SpecialMethodPercentage * 0.05f && config.UseSpecialCandyPinkSpawnMethod) ? 1 : 0;
             for (int i = 0; i < SCP956Plugin.Instance.Config.CandyDropCount; i++)
@@ -279,6 +397,7 @@ namespace SCP956Plugin.SCP956
                     scp330Pickup.StoredCandies.Add(candyKindID);
                     scp330Pickup.NetworkExposedCandy = candyKindID;
                     scp330Pickup.RigidBody.velocity = _velocity;
+                    scp330Pickup.RigidBody.position = vector3;
                 }
             }
         }
@@ -424,7 +543,7 @@ namespace SCP956Plugin.SCP956
             }
             if (ReferenceHub.TryGetHub(hit.transform.root.gameObject, out ReferenceHub hub) && config.KillableDisturbingRoles.Contains(hub.roleManager.CurrentRole.RoleTypeId) && hub != Target)
             {
-                if (!config.OnlyKillDisturbingWhileOwnScp330 || PlayerCheck(hub))
+                if (!config.OnlyKillDisturbingWhileOwnScp330 || PlayerCheck(hub, out TargetingReason reason))
                 {
                     hub.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReasonDIsturbingWay));
                 }
@@ -473,7 +592,7 @@ namespace SCP956Plugin.SCP956
 
         public DoorVariant CurrentDoor;
 
-        public List<ReferenceHub> Targetable = new List<ReferenceHub> { };
+        public Dictionary<ReferenceHub, TargetingReason> Targetable = new Dictionary<ReferenceHub, TargetingReason> { };
 
         private float _sequenceTimer;
 
@@ -486,6 +605,8 @@ namespace SCP956Plugin.SCP956
         private Vector3 TargetPos;
 
         public Dictionary<ReferenceHub, float> TimerPerReferenceHub = new Dictionary<ReferenceHub, float> { };
+
+        public Dictionary<ReferenceHub, float> TimerForAnger = new Dictionary<ReferenceHub, float> { };
 
         private float rotateTime;
 
@@ -500,5 +621,7 @@ namespace SCP956Plugin.SCP956
         float lerpRot;
 
         bool triggered = false;
+
+        public float Health;
     }
 }
