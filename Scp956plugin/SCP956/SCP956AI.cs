@@ -229,7 +229,7 @@ namespace SCP956Plugin.SCP956
         {
             Transform transform = ev.Player.CameraTransform;
             Ray ray = new Ray(transform.position, ev.ShotPosition - transform.position);
-            if (bounds.IntersectRay(ray, out float distance))
+            if (bounds.IntersectRay(ray, out float distance) && CheckVisibility(this.transform.position, transform.position))
             {
                 Damage((ev.Player.CurrentItem as Firearm).Base.BaseStats.BaseDamage, ev.Player.ReferenceHub);
             }
@@ -325,12 +325,16 @@ namespace SCP956Plugin.SCP956
 
         private bool TryDespawn()
         {
-            if (!config.DoNotDespawnWhileBeingWatched)
+            if (config.DoNotDespawnWhileBeingWatched)
             {
                 Vector3 currentPos = this.gameObject.transform.position;
                 foreach (ReferenceHub hub in ReferenceHub.AllHubs)
                 {
-                    if (CheckVisibility(currentPos, hub.PlayerCameraReference.position))
+                    if (hub.isLocalPlayer)
+                    {
+                        continue;
+                    }
+                    if (CheckVisibility(currentPos, (hub.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position))
                     {
                         return false;
                     }
