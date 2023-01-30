@@ -17,6 +17,8 @@ using InventorySystem.Items.Usables.Scp330;
 using MapGeneration;
 using InventorySystem.Items.ThrowableProjectiles;
 using Exiled.API.Features.Items;
+using Mirror;
+using Utils.Networking;
 
 namespace SCP956Plugin.SCP956
 {
@@ -245,6 +247,10 @@ namespace SCP956Plugin.SCP956
 
         public void Damage(float damage, ReferenceHub attacker)
         {
+            if (Health <= 0f || !Spawned)
+            {
+                return;
+            }
             Health -= damage;
             if (config.AddTargetableWhoDamageScp956)
             {
@@ -259,17 +265,16 @@ namespace SCP956Plugin.SCP956
                 if (config.ExplodeWhenScp956Dead)
                 {
                     ItemBase itemBase;
-                    if (!InventoryItemLoader.AvailableItems.TryGetValue(ItemType.GrenadeHE, out itemBase))
-                    {
-                        return;
-                    }
                     ThrowableItem throwableItem;
                     ExplosionGrenade explosionGrenade;
-                    if ((throwableItem = (itemBase as ThrowableItem)) == null || (explosionGrenade = (throwableItem.Projectile as ExplosionGrenade)) == null)
+                    if (InventoryItemLoader.AvailableItems.TryGetValue(ItemType.GrenadeHE, out itemBase) && (throwableItem = (itemBase as ThrowableItem)) != null && (explosionGrenade = (throwableItem.Projectile as ExplosionGrenade)) != null)
                     {
-                        return;
+                        new CandyPink.CandyExplosionMessage
+                        {
+                            Origin = this.transform.position
+                        }.SendToAuthenticated(0);
+                        ExplosionGrenade.Explode(new Footprinting.Footprint(attacker), this.transform.position, explosionGrenade);
                     }
-                    ExplosionGrenade.Explode(new Footprinting.Footprint(), this.gameObject.transform.position, explosionGrenade);
                 }
                 DestroyScp956();
             }
@@ -361,11 +366,7 @@ namespace SCP956Plugin.SCP956
             {
                 return false;
             }
-            bool flag = false;
-            if (TimerForAnger.TryGetValue(hub, out float time) && Timer <= time)
-            {
-                flag = true;
-            }
+            bool flag = TimerForAnger.TryGetValue(hub, out float time) && Timer <= time;
             if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
             {
                 if (config.PriorAngerTargetingTimer && flag)
