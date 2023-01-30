@@ -46,6 +46,14 @@ namespace SCP956Plugin
             Exiled.Events.Handlers.Player.InteractingLocker += PlayerHandler.InteractLocker;
             Exiled.Events.Handlers.Player.Jumping += PlayerHandler.Jump;
             Exiled.Events.Handlers.Player.Left += PlayerHandler.OnQuit;
+            Exiled.Events.Handlers.Player.Shooting += PlayerHandler.OnShooting;
+            if (Config.Scp956CanHit)
+            {
+                if (Config.DamagableTypes.Contains(Exiled.API.Enums.DamageType.Explosion))
+                {
+                    Exiled.Events.Handlers.Map.ExplodingGrenade += PlayerHandler.OnGrenadeExplode;
+                }
+            }
         }
 
         void UnRegisterEvent()
@@ -61,6 +69,14 @@ namespace SCP956Plugin
             Exiled.Events.Handlers.Player.InteractingLocker -= PlayerHandler.InteractLocker;
             Exiled.Events.Handlers.Player.Jumping -= PlayerHandler.Jump;
             Exiled.Events.Handlers.Player.Left -= PlayerHandler.OnQuit;
+            Exiled.Events.Handlers.Player.Shooting -= PlayerHandler.OnShooting;
+            if (Config.Scp956CanHit)
+            {
+                if (Config.DamagableTypes.Contains(Exiled.API.Enums.DamageType.Explosion))
+                {
+                    Exiled.Events.Handlers.Map.ExplodingGrenade -= PlayerHandler.OnGrenadeExplode;
+                }
+            }
 
             SchematicHandler = null;
             PlayerHandler = null;
