@@ -291,7 +291,6 @@ namespace SCP956Plugin.SCP956
             Timer = 0f;
             TimerPerReferenceHub.Clear();
             Targetable.Clear();
-            Targeted.Clear();
             TimerForAnger.Clear();
             Target = null;
             Spawned = false;
@@ -301,8 +300,6 @@ namespace SCP956Plugin.SCP956
                 Targeted.Remove(hub);
                 TurnEffects(hub, false);
             }
-            Targetable.Clear();
-            TimerPerReferenceHub.Clear();
         }
 
         void GetBounds()
