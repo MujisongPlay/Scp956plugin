@@ -42,10 +42,14 @@ namespace SCP956Plugin
         public float DespawnFailedTryAgainTime { get; set; } = 5f;
 
         //Targeting
+        public ItemType[] TargetingItems { get; set; } = new ItemType[]
+        {
+            ItemType.SCP330
+        };
         public float TargetMaximumDistance { get; set; } = 10f;
         public bool CanTargetThroughWindow { get; set; } = true;
         public bool CanTargetThroughDoor { get; set; } = false;
-        public float TimeScp330OwnerTargeting { get; set; } = 7.5f;
+        public float TimeToTargetOnNormalReason { get; set; } = 7.5f;
         public Faction[] TargetableFaction { get; set; } = new Faction[]
         {
             Faction.FoundationStaff,
