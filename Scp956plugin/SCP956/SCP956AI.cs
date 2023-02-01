@@ -318,7 +318,7 @@ namespace SCP956Plugin.SCP956
 
         public Dictionary<TargetingReason, float> TimePerReason = new Dictionary<TargetingReason, float>
         {
-            {TargetingReason.NormalCondition, SCP956Plugin.Instance.Config.TimeScp330OwnerTargeting},
+            {TargetingReason.NormalCondition, SCP956Plugin.Instance.Config.TimeToTargetOnNormalReason},
             {TargetingReason.AngerScp956, SCP956Plugin.Instance.Config.DamageScp956TargetedTimer }
         };
 
@@ -365,7 +365,7 @@ namespace SCP956Plugin.SCP956
                 return false;
             }
             bool flag = TimerForAnger.TryGetValue(hub, out float time) && Timer <= time;
-            if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => x.Value.ItemTypeId == ItemType.SCP330) || config.TargetEveryone)
+            if (hub.inventory.UserInventory.Items.Any((KeyValuePair<ushort, ItemBase> x) => config.TargetingItems.Contains(x.Value.ItemTypeId)) || config.TargetEveryone)
             {
                 if (config.PriorAngerTargetingTimer && flag)
                 {
