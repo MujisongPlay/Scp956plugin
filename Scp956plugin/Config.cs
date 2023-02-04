@@ -32,6 +32,7 @@ namespace SCP956Plugin
         public int MaximumCountOfScp956 { get; set; } = 1;
         public bool DoNotOverlapSpawnPosition { get; set; } = true;
         public bool LogsItslocation { get; set; } = true;
+        public bool OnlySpawnAtLinkingRoomDoor { get; set; } = false;
 
         //Desapwn
         [Description("SCP-956 will try despawn when the corresponding time elapses after spawn.")]
