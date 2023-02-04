@@ -472,6 +472,10 @@ namespace SCP956Plugin.SCP956
                 {
                     continue;
                 }
+                if (!hub.roleManager.CurrentRole is FpcStateProcessor)
+                {
+                    continue;
+                }
                 RoomIdentifier identifier = RoomIdUtils.RoomAtPositionRaycasts((hub.roleManager.CurrentRole as FpcStandardRoleBase).FpcModule.Position);
                 if (!(identifier == null) && config.SpawnableZone.Contains(identifier.Zone))
                 {
@@ -503,6 +507,10 @@ namespace SCP956Plugin.SCP956
                 if (door is BreakableDoor && door.Rooms != null && door.Rooms.Length != 0 && door.Rooms[0].Zone == zone)
                 {
                     if (config.DoNotOverlapSpawnPosition && DoorList.Contains(door))
+                    {
+                        continue;
+                    }
+                    if (config.OnlySpawnAtLinkingRoomDoor && door.Rooms.Length == 1)
                     {
                         continue;
                     }
