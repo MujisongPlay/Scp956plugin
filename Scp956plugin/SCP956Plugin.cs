@@ -86,7 +86,7 @@ namespace SCP956Plugin
         {
             for (int i = 0; i < Config.MaximumCountOfScp956; i++)
             {
-                MapEditorReborn.API.Features.ObjectSpawner.SpawnSchematic(SCP956Plugin.Instance.Config.SchematicName, new Vector3(0f, -300f, 0f), Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f));
+                MapEditorReborn.API.Features.ObjectSpawner.SpawnSchematic(SCP956Plugin.Instance.Config.SchematicName.RandomItem(), new Vector3(0f, -300f, 0f), Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f));
             }
         }
 
