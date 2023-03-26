@@ -159,16 +159,14 @@ namespace SCP956Plugin.SCP956
                 {
                     TurnEffects(Target, false, true);
                     triggered = true;
+                    return;
                 }
                 if (this._sequenceTimer < chargeTime + moveTime + rotateTime)
                 {
                     return;
                 }
                 CreateCandies(normalized, Target, Vector3.zero);
-                if (Player.TryGet(Target, out Player player))
-                {
-                    player.PlayGunSound(config.DeathGunSoundSource, config.DeathGunSoundLoudness, config.DeathGunSoundClipNum);
-                }
+                Player.List.ToArray().ForEach(x => { if (Vector3.Distance(x.Position, transform.position) < 15f) x.PlayGunSound(config.DeathGunSoundSource, (byte)(config.DeathGunSoundLoudness / Mathf.RoundToInt(Mathf.Max(1f, Vector3.Distance(x.Position, transform.position)))), config.DeathGunSoundClipNum); });
                 this.Target.playerStats.DealDamage(new CustomReasonDamageHandler(config.DeathReason));
                 Targeted.Remove(Target);
                 SetTarget();
@@ -297,9 +295,9 @@ namespace SCP956Plugin.SCP956
             TargetPos = Vector3.zero;
             foreach (ReferenceHub hub in Targeted)
             {
-                Targeted.Remove(hub);
                 TurnEffects(hub, false);
             }
+            Targeted.Clear();
         }
 
         void GetBounds()
@@ -429,7 +427,7 @@ namespace SCP956Plugin.SCP956
             {
                 foreach (SCP956AI aI in Handlers.SchematicHandler.aIs)
                 {
-                    if (aI.Targeted.Contains(hub))
+                    if (aI != this && aI.Targeted.Contains(hub))
                     {
                         return;
                     }
@@ -534,7 +532,7 @@ namespace SCP956Plugin.SCP956
                 pos = new Vector3(vector.x, transform.position.y + config.SchematicOffsetHeight, vector.z);
                 if (config.LogsItslocation)
                 {
-                    ServerConsole.AddLog(config.SchematicName + " Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
+                    ServerConsole.AddLog(Name + " Spawned in: " + MapGeneration.RoomIdUtils.RoomAtPosition(pos).name);
                 }
                 return true;
             }
@@ -588,6 +586,7 @@ namespace SCP956Plugin.SCP956
                     {
                         _mask ^= 1 << LayerMask.NameToLayer("Door");
                     }
+                    _mask ^= 1 << LayerMask.NameToLayer("Player");
                 }
                 return SCP956AI._mask;
             }
@@ -634,5 +633,7 @@ namespace SCP956Plugin.SCP956
         bool triggered = false;
 
         public float Health;
+
+        public string Name = "";
     }
 }
