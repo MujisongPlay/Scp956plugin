@@ -18,6 +18,7 @@ using MapGeneration;
 using InventorySystem.Items.ThrowableProjectiles;
 using Exiled.API.Features.Items;
 using Mirror;
+using Utils;
 using Utils.Networking;
 
 namespace SCP956Plugin.SCP956
@@ -268,10 +269,7 @@ namespace SCP956Plugin.SCP956
                     ExplosionGrenade explosionGrenade;
                     if (InventoryItemLoader.AvailableItems.TryGetValue(ItemType.GrenadeHE, out itemBase) && (throwableItem = (itemBase as ThrowableItem)) != null && (explosionGrenade = (throwableItem.Projectile as ExplosionGrenade)) != null)
                     {
-                        new CandyPink.CandyExplosionMessage
-                        {
-                            Origin = this.transform.position
-                        }.SendToAuthenticated(0);
+                        ExplosionUtils.ServerSpawnEffect(this.transform.position, ItemType.GrenadeHE);
                         ExplosionGrenade.Explode(new Footprinting.Footprint(attacker), this.transform.position, explosionGrenade);
                     }
                 }
@@ -470,7 +468,7 @@ namespace SCP956Plugin.SCP956
                 {
                     continue;
                 }
-                if (!hub.roleManager.CurrentRole is FpcStateProcessor)
+                if (!(hub.roleManager.CurrentRole is FpcStateProcessor))
                 {
                     continue;
                 }
