@@ -322,9 +322,9 @@ namespace SCP956Plugin.SCP956
 
         ExplosionGrenade grenade = null;
 
-        private bool TryDespawn()
+        public bool TryDespawn(bool Override = false)
         {
-            if (config.DoNotDespawnWhileBeingWatched)
+            if (config.DoNotDespawnWhileBeingWatched && !Override)
             {
                 Vector3 currentPos = this.gameObject.transform.position;
                 foreach (ReferenceHub hub in ReferenceHub.AllHubs)
@@ -388,15 +388,15 @@ namespace SCP956Plugin.SCP956
             int num = (UnityEngine.Random.value < config.SpecialMethodPercentage * 0.05f && config.UseSpecialCandyPinkSpawnMethod) ? 1 : 0;
             for (int i = 0; i < SCP956Plugin.Instance.Config.CandyDropCount; i++)
             {
-                PickupSyncInfo psi = new PickupSyncInfo(ItemType.SCP330, ply.transform.position, Quaternion.identity, scp330Bag.Weight, 0);
+                PickupSyncInfo psi = new PickupSyncInfo(ItemType.SCP330, scp330Bag.Weight);
                 Scp330Pickup scp330Pickup = ply.inventory.ServerCreatePickup(scp330Bag, psi, true) as Scp330Pickup;
-                if (!(scp330Pickup == null))
+                if (!(scp330Pickup == null) && scp330Pickup.gameObject.TryGetComponent(out Rigidbody rigidbody))
                 {
                     CandyKindID candyKindID = (num-- > 0) ? CandyKindID.Pink : TryGet();
                     scp330Pickup.StoredCandies.Add(candyKindID);
                     scp330Pickup.NetworkExposedCandy = candyKindID;
-                    scp330Pickup.RigidBody.velocity = _velocity;
-                    scp330Pickup.RigidBody.position = vector3;
+                    rigidbody.velocity = _velocity;
+                    rigidbody.position = vector3;
                 }
             }
         }
