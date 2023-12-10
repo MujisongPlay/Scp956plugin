@@ -38,7 +38,6 @@ namespace SCP956Plugin.SCP956
             this.coolTime = config.CooldownToFaceAnotherTarget;
             if (config.Scp956CanHit)
             {
-                this.GetBounds();
                 Health = config.Scp956Hp;
             }
         }
@@ -226,13 +225,12 @@ namespace SCP956Plugin.SCP956
             return true;
         }
 
-        public void OnShot(Exiled.Events.EventArgs.Player.ShootingEventArgs ev)
+        public void OnShot(Exiled.Events.EventArgs.Player.ShotEventArgs ev)
         {
-            Transform transform = ev.Player.CameraTransform;
-            Ray ray = new Ray(transform.position, ev.ShotPosition - transform.position);
-            if (bounds.IntersectRay(ray, out float distance) && CheckVisibility(this.transform.position, transform.position))
+            if (ev.RaycastHit.collider.transform.root == this.transform)
             {
-                Damage((ev.Player.CurrentItem as Firearm).Base.BaseStats.BaseDamage, ev.Player.ReferenceHub);
+                Firearm firearm = ev.Player.CurrentItem as Firearm;
+                Damage(firearm.Base.BaseStats.DamageAtDistance(firearm.Base, Vector3.Distance(ev.Player.Position, this.transform.position)), ev.Player.ReferenceHub);
             }
         }
 
@@ -251,7 +249,7 @@ namespace SCP956Plugin.SCP956
                 return;
             }
             Health -= damage;
-            Hitmarker.SendHitmarker(attacker, 1f);
+            Hitmarker.SendHitmarkerDirectly(attacker, 1f);
             if (config.AddTargetableWhoDamageScp956)
             {
                 TimerForAnger[attacker] = config.DamageScp956RememberTimer + Timer;
@@ -298,14 +296,6 @@ namespace SCP956Plugin.SCP956
             Targeted.Clear();
         }
 
-        void GetBounds()
-        {
-            foreach (Renderer renderer in this.gameObject.GetComponentsInChildren<Renderer>())
-            {
-                bounds.Encapsulate(renderer.bounds);
-            }
-        }
-
         public enum TargetingReason
         {
             NormalCondition,
@@ -317,8 +307,6 @@ namespace SCP956Plugin.SCP956
             {TargetingReason.NormalCondition, SCP956Plugin.Instance.Config.TimeToTargetOnNormalReason},
             {TargetingReason.AngerScp956, SCP956Plugin.Instance.Config.DamageScp956TargetedTimer }
         };
-
-        Bounds bounds = new Bounds();
 
         ExplosionGrenade grenade = null;
 
